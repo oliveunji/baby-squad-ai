@@ -20,11 +20,11 @@ BabySquad는 0~12개월 영아 부모를 위해 설계된 **계층형 멀티 에
 
 ```mermaid
 graph TD
-    User[User Question] --> Supervisor[👩‍💼 Head Nanny (Router)]
-    Supervisor -->|Sleep Issue| Sleep[💤 Sleep Expert]
-    Supervisor -->|Feeding Issue| Nutrition[🥦 Nutritionist]
-    Sleep --> Tools1[📘 Sleep Guide DB]
-    Nutrition --> Tools2[🍼 Feeding Guide DB]
+    User["User Question"] --> Supervisor["👩‍💼 Head Nanny (Router)"]
+    Supervisor -->|Sleep Issue| Sleep["💤 Sleep Expert"]
+    Supervisor -->|Feeding Issue| Nutrition["🥦 Nutritionist"]
+    Sleep --> Tools1["📘 Sleep Guide DB"]
+    Nutrition --> Tools2["🍼 Feeding Guide DB"]
     Sleep & Nutrition --> Supervisor
     Supervisor -->|Synthesized Answer| User
 
