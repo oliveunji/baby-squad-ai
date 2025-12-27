@@ -31,8 +31,8 @@ def ingest_data():
     documents = loader.load()
     
     # PDF 파일이 있다면 아래 주석 해제
-    # pdf_loader = DirectoryLoader(data_path, glob="**/*.pdf", loader_cls=PyPDFLoader)
-    # documents.extend(pdf_loader.load())
+    pdf_loader = DirectoryLoader(data_path, glob="**/*.pdf", loader_cls=PyPDFLoader)
+    documents.extend(pdf_loader.load())
 
     if not documents:
         print("📂 data 폴더가 비어있습니다. 학습할 텍스트 파일(.txt)을 넣어주세요.")
@@ -45,8 +45,8 @@ def ingest_data():
     # 책을 한 번에 다 외울 수 없으니, 문단 단위로 쪼갭니다.
     # ---------------------------------------------------------
     text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=500,  # 500자 단위로 자름
-        chunk_overlap=50 # 문맥이 끊기지 않게 50자씩 겹치게 자름
+        chunk_size=1000,  # 1000자 단위로 자름
+        chunk_overlap=200 # 문맥이 끊기지 않게 200자씩 겹치게 자름
     )
     chunks = text_splitter.split_documents(documents)
     print(f"✂️  문서를 {len(chunks)}개의 조각(Chunk)으로 잘랐습니다.")

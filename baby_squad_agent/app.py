@@ -77,11 +77,30 @@ def setup_agent_system():
             
         print(f"🔍 검색 수행: {query}")
         try:
-            # 유사도 검색 (상위 3개 문서 추출)
-            results = db.similarity_search(query, k=3)
+            # 유사도 검색 (상위 7개 문서 추출)
+            results = db.similarity_search(query, k=7)
             
-            # 검색된 내용을 하나의 텍스트로 합침
-            context_text = "\n\n".join([f"- {doc.page_content}" for doc in results])
+            # [핵심 변경] 내용과 함께 출처(Metadata)를 포맷팅해서 합침
+            context_list = []
+            for doc in results:
+                # 1. 파일 경로에서 파일명만 추출 (예: data/guide.pdf -> guide.pdf)
+                source_path = doc.metadata.get("source", "알 수 없음")
+                file_name = os.path.basename(source_path) 
+                
+                # 2. 페이지 번호 추출 (0부터 시작하므로 +1 해줌)
+                page_num = doc.metadata.get("page", 0) + 1
+                
+                # 3. 텍스트 구성
+                formatted_text = (
+                    f"--- 문서 내용 ---\n"
+                    f"{doc.page_content}\n"
+                    f"👉 [출처: {file_name}, {page_num}페이지]"
+                )
+                context_list.append(formatted_text)
+
+            context_text = "\n\n".join(context_list)
+            # [디버깅용 로그 추가] 터미널에서 이 로그가 찍히는지 확인하세요!
+            print(f"✅ 도구 반환값:\n{context_text}")
             return f"[검색된 가이드라인]\n{context_text}"
         except Exception as e:
             return f"검색 중 오류 발생: {str(e)}"
@@ -105,9 +124,13 @@ def setup_agent_system():
         model=LiteLlm(model=MODEL_NAME),
         description="영양 전문",
         instruction="""
-        당신은 영양사입니다.
-        이유식이나 수유량 질문이 오면 'search_knowledge_base' 도구를 사용해 정확한 수치를 찾으세요.
-        검색된 근거(철분, 용량 등)를 인용하여 전문적으로 답변하세요.
+        당신은 따뜻한 수면 컨설턴트입니다.
+        사용자의 질문에 대해 'search_knowledge_base' 도구를 사용하여 가이드라인을 검색하세요.
+        
+        [중요 규칙]
+        1. 검색된 내용에 있는 **정보와 수치**를 정확하게 전달하세요.
+        2. 답변의 맨 마지막에는 **도구에서 제공한 출처(파일명, 페이지)**를 반드시 그대로 명시하세요.
+        3. 출처 형식: (출처: 파일명, p.페이지번호)
         """,
         tools=[search_knowledge_base]
     )
