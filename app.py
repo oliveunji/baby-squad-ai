@@ -16,6 +16,16 @@ from langchain_google_genai import GoogleGenerativeAIEmbeddings
 # 1. 기본 설정 및 API 키 로드
 load_dotenv()
 
+if not os.getenv("GOOGLE_API_KEY"):
+    print("❌ 에러: .env 파일을 찾을 수 없거나 GOOGLE_API_KEY가 없습니다.")
+elif not os.getenv("OPENAI_API_KEY"):
+    print("❌ 에러: .env 파일을 찾을 수 없거나 OPENAI_API_KE가 없습니다.")
+else:
+    print("✅ 환경 변수 로드 완료")
+
+MODEL_GEMINI_2_0_FLASH = "gemini/gemini-2.0-flash"
+MODEL_GPT_4O = "openai/gpt-4.1-mini"
+
 st.set_page_config(page_title="BabySquad", page_icon="👶")
 st.title("👶 BabySquad: AI 육아 전문가 팀")
 st.caption("🚀 4개월 아기 부모를 위한 수면 & 영양 맞춤 솔루션")
@@ -56,13 +66,6 @@ if "vector_store" not in st.session_state:
 # ---------------------------------------------------------
 @st.cache_resource
 def setup_agent_system():
-    if not os.getenv("GOOGLE_API_KEY"):
-        st.error("API Key가 없습니다. .env 파일을 확인해주세요.")
-        return None, None, None
-
-    os.environ["GEMINI_API_KEY"] = os.getenv("GOOGLE_API_KEY")
-    MODEL_NAME = "openai/gpt-4.1-mini"
-
     # ★★★ [핵심] RAG 검색 도구 정의 ★★★
     def search_knowledge_base(query: str) -> str:
         """
@@ -108,7 +111,7 @@ def setup_agent_system():
     # (1) 수면 전문가 (이제 검색 도구를 사용함)
     sleep_expert = Agent(
         name="sleep_expert",
-        model=LiteLlm(model=MODEL_NAME),
+        model=LiteLlm(model=MODEL_GPT_4O),
         description="수면 전문",
         instruction="""
         당신은 수면 컨설턴트입니다.
@@ -121,7 +124,7 @@ def setup_agent_system():
     # (2) 영양 전문가
     nutrition_expert = Agent(
         name="nutrition_expert",
-        model=LiteLlm(model=MODEL_NAME),
+        model=LiteLlm(model=MODEL_GPT_4O),
         description="영양 전문",
         instruction="""
         당신은 따뜻한 수면 컨설턴트입니다.
@@ -138,7 +141,7 @@ def setup_agent_system():
     # (3) 헤드 내니
     head_nanny = Agent(
         name="head_nanny",
-        model=LiteLlm(model=MODEL_NAME),
+        model=LiteLlm(model=MODEL_GPT_4O),
         sub_agents=[sleep_expert, nutrition_expert],
         description="메인 상담사",
         instruction="BabySquad 팀장입니다. 수면/영양 전문가를 적절히 호출하고, 인사는 직접 하세요."

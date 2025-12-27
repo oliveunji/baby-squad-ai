@@ -20,7 +20,7 @@ def ingest_data():
     # [1] 문서 로드 (Load Documents)
     # data 폴더에 있는 txt, pdf 파일을 모두 읽어옵니다.
     # ---------------------------------------------------------
-    data_path = "./data"
+    data_path = "../data"
     if not os.path.exists(data_path):
         os.makedirs(data_path)
         print(f"⚠️ '{data_path}' 폴더가 없어서 생성했습니다. 학습할 파일을 넣어주세요!")
@@ -58,7 +58,7 @@ def ingest_data():
     embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
     
     # DB 저장 경로
-    persist_directory = "./chroma_db"
+    persist_directory = "../chroma_db"
     
     print("💾 데이터베이스에 저장 중... (시간이 조금 걸릴 수 있습니다)")
     vector_store = Chroma.from_documents(
