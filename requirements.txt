@@ -1,4 +1,5 @@
 streamlit
+google-adk 
 google-genai
 python-dotenv
 langchain-chroma
