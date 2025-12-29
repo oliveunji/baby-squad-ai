@@ -1,10 +1,12 @@
 streamlit
-google-adk 
 google-genai
 python-dotenv
 langchain-chroma
 langchain-google-genai
+langchain-openai
+langgraph
 litellm
 pypdf
 chromadb
 tiktoken
+langchain-community
