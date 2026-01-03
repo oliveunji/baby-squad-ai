@@ -6,3 +6,5 @@ __pycache__/
 .adk
 
 chroma_db/
+
+*.xlsx
