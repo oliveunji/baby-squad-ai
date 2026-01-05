@@ -76,19 +76,36 @@ def supervisor_node(state: AgentState):
     else: decision = "Nutrition_Expert"
     return {"next": decision}
 
+# ---------------------------------------------------------
+# [New Node] 사람 검토 노드 (검문소) 👮
+# ---------------------------------------------------------
+def human_review_node(state: AgentState):
+    # 이 노드는 실제로 아무것도 안 하고 통과만 시킵니다.
+    # 하지만 이 노드 '앞'에서 멈추는 게 목적입니다.
+    print("  ✅ [사람 검토] 승인 완료. 프로세스를 종료합니다.")
+    return {}
+
 # [그래프 연결]
 workflow = StateGraph(AgentState)
 workflow.add_node("Supervisor", supervisor_node)
 workflow.add_node("Nutrition_Expert", nutrition_expert_node)
 workflow.add_node("Sleep_Expert", sleep_expert_node)
+workflow.add_node("Human_Review", human_review_node)
+
 workflow.set_entry_point("Supervisor")
 workflow.add_conditional_edges("Supervisor", lambda x: x["next"], 
                                {"Nutrition_Expert": "Nutrition_Expert", "Sleep_Expert": "Sleep_Expert"})
-workflow.add_edge("Nutrition_Expert", END)
+workflow.add_edge("Nutrition_Expert", "Human_Review")
 workflow.add_edge("Sleep_Expert", END)
 
+# 검토가 끝나야 진짜 끝(END)
+workflow.add_edge("Human_Review", END)
+
 memory = MemorySaver()
-app = workflow.compile(checkpointer=memory)
+app = workflow.compile(
+    checkpointer=memory,
+    interrupt_after=["Nutrition_Expert", "Sleep_Expert"]
+)
 
 # [핵심] 그냥 app만 리턴합니다. (LangServe 설정 다 뺌)
 def get_graph_app():

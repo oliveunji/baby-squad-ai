@@ -1,61 +1,86 @@
 import streamlit as st
 import uuid
 import requests
-import json
-
-# [중요] 우리가 만든 baseline.py에서 '단일 에이전트 함수'를 가져옵니다.
-# (파일이 같은 폴더에 있어야 합니다)
-try:
-    from baseline import simple_rag_answer
-except ImportError:
-    st.error("❌ 'baseline.py' 파일을 찾을 수 없습니다. 같은 폴더에 있는지 확인해주세요.")
-    simple_rag_answer = None
 
 # 1. 페이지 설정
-st.set_page_config(page_title="BabySquad AI", page_icon="👶", layout="wide")
+st.set_page_config(page_title="BabySquad AI", page_icon="👶")
+st.title("👶 BabySquad: 안전한 AI 육아 상담소")
 
-# 2. 세션 초기화
+# 2. 세션 상태 초기화
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
 if "thread_id" not in st.session_state:
     st.session_state.thread_id = str(uuid.uuid4())
 
-# 3. 사이드바 (모드 선택)
+# [핵심] 승인 대기 상태를 저장할 변수 추가
+if "pending_approval" not in st.session_state:
+    st.session_state.pending_approval = None  # None이면 대기 없음, 값이 있으면 대기 중인 답변 텍스트
+
+# 3. 사이드바
 with st.sidebar:
     st.title("🔧 제어판")
-    
-    # 모드 선택 스위치
-    mode = st.radio("모드 선택", ["💬 일반 대화 모드", "🆚 비교 모드 (A/B Test)"])
-    
-    st.divider()
-    st.info(f"Session ID:\n{st.session_state.thread_id}")
-    
-    if st.button("대화 내용 초기화"):
+    st.info(f"Session ID: {st.session_state.thread_id}")
+    if st.button("대화 초기화"):
         st.session_state.messages = []
+        st.session_state.pending_approval = None
         st.session_state.thread_id = str(uuid.uuid4())
         st.rerun()
 
-# =========================================================
-# [Mode 1] 일반 대화 모드 (기존과 동일)
-# =========================================================
-if mode == "💬 일반 대화 모드":
-    st.header("👶 BabySquad: AI 육아 전문가 팀")
-    st.caption("멀티 에이전트 시스템과 대화해보세요.")
+# 4. 대화 내용 표시 (이전 대화들)
+for msg in st.session_state.messages:
+    role = "user" if msg["role"] == "user" else "assistant"
+    with st.chat_message(role):
+        st.markdown(msg["content"])
 
-    # 대화 기록 표시
-    for msg in st.session_state.messages:
-        role = "user" if msg["role"] == "user" else "assistant"
-        with st.chat_message(role):
-            st.markdown(msg["content"])
+# =========================================================
+# 5. UI 분기 처리 (승인 대기 중 vs 일반 대화)
+# =========================================================
 
-    # 사용자 입력
+# (A) 승인 대기 중일 때 (질문 입력창 숨기고 승인 버튼 보여주기)
+if st.session_state.pending_approval:
+    draft = st.session_state.pending_approval
+    
+    with st.chat_message("assistant"):
+        # 경고 박스 표시
+        st.warning(f"🛡️ [안전 모드] 답변 승인 대기 중\n\n---\n{draft}")
+        
+        col1, col2 = st.columns(2)
+        
+        # ✅ 승인 버튼 로직 (이제 chat_input 밖이라서 잘 동작함!)
+        with col1:
+            if st.button("✅ 승인 (Approve)", use_container_width=True):
+                try:
+                    # 1. /approve API 호출
+                    res = requests.post(
+                        "http://localhost:8000/approve",
+                        json={"thread_id": st.session_state.thread_id}
+                    )
+                    final_res = res.json()["response"]
+                    
+                    # 2. 결과 저장 및 상태 해제
+                    st.session_state.messages.append({"role": "assistant", "content": final_res})
+                    st.session_state.pending_approval = None # 대기 상태 해제
+                    st.rerun() # 화면 갱신
+                    
+                except Exception as e:
+                    st.error(f"승인 오류: {e}")
+
+        # ❌ 반려 버튼 로직
+        with col2:
+            if st.button("❌ 반려 (Reject)", use_container_width=True):
+                st.error("답변이 반려되었습니다.")
+                st.session_state.pending_approval = None # 대기 상태 해제
+                st.rerun()
+
+# (B) 일반 대화 상태일 때 (평소처럼 질문 입력창 표시)
+else:
     if prompt := st.chat_input("육아 고민을 물어보세요..."):
-        # 내 메시지 표시
+        # 1. 사용자 질문 표시
         st.chat_message("user").markdown(prompt)
         st.session_state.messages.append({"role": "user", "content": prompt})
-
-        # API 호출
+        
+        # 2. API 호출
         with st.chat_message("assistant"):
             placeholder = st.empty()
             placeholder.markdown("Thinking... 📡")
@@ -63,84 +88,21 @@ if mode == "💬 일반 대화 모드":
             try:
                 response = requests.post(
                     "http://localhost:8000/chat",
-                    json={
-                        "thread_id": st.session_state.thread_id,
-                        "message": prompt
-                    }
+                    json={"thread_id": st.session_state.thread_id, "message": prompt}
                 )
+                data = response.json()
                 
-                if response.status_code == 200:
-                    result_text = response.json()["response"]
-                    placeholder.markdown(result_text)
-                    st.session_state.messages.append({"role": "assistant", "content": result_text})
+                # Case 1: 검토 필요 (Review Needed)
+                if data.get("status") == "review_needed":
+                    # [핵심] 화면에 바로 띄우지 않고, session_state에 저장 후 리런!
+                    st.session_state.pending_approval = data["draft_response"]
+                    st.rerun() # 다시 실행해서 (A) 흐름으로 보냄
+                
+                # Case 2: 자동 승인/완료 (Completed)
                 else:
-                    placeholder.error(f"서버 에러 ({response.status_code}): {response.text}")
+                    final_res = data.get("response", "응답 없음")
+                    placeholder.markdown(final_res)
+                    st.session_state.messages.append({"role": "assistant", "content": final_res})
                     
             except Exception as e:
-                placeholder.error(f"서버 연결 실패! server.py가 켜져 있나요?\n에러: {e}")
-
-# =========================================================
-# [Mode 2] 비교 모드 (A/B Test) - 면접 시연용 🔥
-# =========================================================
-else:
-    st.header("🆚 성능 비교 (A/B Test)")
-    st.markdown("""
-    **Single Agent(기본 RAG)**와 **Multi-Agent(제안 모델)**의 답변 품질을 실시간으로 비교합니다.
-    """)
-
-    # 비교 전용 입력창
-    if prompt := st.chat_input("비교할 질문을 입력하세요 (예: 5개월 아기 이유식 스케줄)"):
-        
-        # 질문 표시
-        st.write(f"### ❓ 질문: {prompt}")
-        st.divider()
-
-        # 화면을 좌우로 나눔
-        col1, col2 = st.columns(2)
-
-        # [왼쪽] 청코너: Single Agent (Baseline)
-        with col1:
-            st.subheader("🔵 Single Agent (Baseline)")
-            status1 = st.empty()
-            status1.info("답변 생성 중...")
-            
-            try:
-                # baseline.py 함수 직접 실행
-                if simple_rag_answer:
-                    result_a = simple_rag_answer(prompt)
-                    status1.empty()
-                    st.success("완료")
-                    st.markdown(result_a)
-                else:
-                    st.error("baseline.py 로드 실패")
-            except Exception as e:
-                status1.error(f"에러 발생: {e}")
-
-        # [오른쪽] 홍코너: Multi-Agent (Proposed)
-        with col2:
-            st.subheader("🔴 Multi-Agent (Proposed)")
-            status2 = st.empty()
-            status2.info("API 서버 호출 중...")
-            
-            try:
-                # server.py API 호출
-                # (비교 모드에서는 매번 새로운 스레드로 가정하거나, 기존 스레드 유지 선택 가능)
-                # 여기서는 공정한 비교를 위해 기존 스레드를 사용해 문맥을 유지하도록 함
-                response = requests.post(
-                    "http://localhost:8000/chat",
-                    json={
-                        "thread_id": st.session_state.thread_id, # 문맥 유지
-                        "message": prompt
-                    }
-                )
-                
-                if response.status_code == 200:
-                    result_b = response.json()["response"]
-                    status2.empty()
-                    st.success("완료")
-                    st.markdown(result_b)
-                else:
-                    status2.error(f"API 에러: {response.text}")
-                    
-            except Exception as e:
-                status2.error(f"연결 실패: {e}")
+                placeholder.error(f"연결 실패: {e}")

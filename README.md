@@ -20,13 +20,26 @@ BabySquad는 0~12개월 영아 부모를 위해 설계된 **계층형 멀티 에
 
 ```mermaid
 graph TD
-    User["User Question"] --> Supervisor["👩‍💼 Head Nanny (Router)"]
-    Supervisor -->|Sleep Issue| Sleep["💤 Sleep Expert"]
-    Supervisor -->|Feeding Issue| Nutrition["🥦 Nutritionist"]
-    Sleep --> Tools1["📘 Sleep Guide DB"]
-    Nutrition --> Tools2["🍼 Feeding Guide DB"]
-    Sleep & Nutrition --> Supervisor
-    Supervisor -->|Synthesized Answer| User
+    User((사용자)) -->|질문 입력| Streamlit[Streamlit Frontend]
+    Streamlit -->|API 요청 (/chat)| FastAPI[FastAPI Server]
+    
+    subgraph "BabySquad Brain (LangGraph)"
+        FastAPI --> Supervisor{관리자 에이전트}
+        Supervisor -->|라우팅| Experts[전문가 에이전트<br>(영양/수면)]
+        Experts -->|답변 초안 작성| Draft[초안 생성]
+    end
+    
+    Draft -->|멈춤 (Interrupt)| Guardrail{🛡️ AI 안전 심판관}
+    
+    Guardrail -->|SAFE (안전)| AutoApprove[✅ 자동 승인]
+    Guardrail -->|RISK (위험)| HumanReview[🚨 사람 검토 요청]
+    
+    HumanReview -->|응답: review_needed| Streamlit
+    Streamlit -->|사용자/관리자| Button{승인 버튼 클릭}
+    Button -->|API 요청 (/approve)| FastAPI
+    
+    AutoApprove -->|최종 답변| Final[🚀 답변 전송]
+    FastAPI -->|재개 (Resume)| Final
 
 ```
 
