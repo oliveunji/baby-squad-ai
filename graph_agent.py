@@ -67,7 +67,7 @@ def nutrition_expert_node(state: AgentState):
     last_message = messages[-1].content
     context = retrieve_knowledge(last_message, "Nutrition")
     system_msg = f"당신은 영양 전문가입니다. 정보: {context}"
-    response = llm_supervisor.invoke([SystemMessage(content=system_msg)] + messages)
+    response = llm_expert.invoke([SystemMessage(content=system_msg)] + messages)
     return {"messages": [response]}
 
 def sleep_expert_node(state: AgentState):
