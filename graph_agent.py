@@ -35,8 +35,26 @@ else:
 
 def retrieve_knowledge(query: str, category: str) -> str:
     if not vector_store: return "정보 없음"
-    results = vector_store.similarity_search(query, k=3)
-    return "\n".join([doc.page_content for doc in results])
+    print(f"  🔍 [{category}] 문서 검색 중: '{query}'")
+    retriever = vector_store.as_retriever(
+        search_type="similarity_score_threshold",
+        search_kwargs={"score_threshold": 0.5, "k": 3} # 👈 커트라인 설정 (0.0~1.0)
+    )
+    try:
+        results = retriever.invoke(query)
+    except Exception as e:
+        print(f"  ⚠️ 검색 경고: 기준을 넘는 문서가 없습니다. ({e})")
+        return "관련된 가이드라인을 찾지 못했습니다."
+
+    if not results:
+        return "관련된 가이드라인을 찾지 못했습니다."
+    
+    # 검색된 내용 로그 찍어보기 (디버깅용)
+    # for doc in results:
+    #     print(f"    - [Hit] {doc.page_content[:30]}...")
+
+    context = "\n".join([f"- {doc.page_content}" for doc in results])
+    return context
 
 # [상태 정의]
 class AgentState(TypedDict):
