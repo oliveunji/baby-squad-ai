@@ -15,8 +15,12 @@ from langgraph.checkpoint.memory import MemorySaver
 
 load_dotenv()
 
-# [모델 설정]
-llm = ChatOpenAI(model="gpt-4o", temperature=0)
+# Expert는 똑똑해야 하니까 gpt-4o 유지
+llm_expert = ChatOpenAI(model="gpt-4o", temperature=0) 
+
+# Supervisor는 빠르고 싼 gpt-4o-mini 사용
+llm_supervisor = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+
 embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
 
 # [DB 로드]
@@ -45,7 +49,7 @@ def nutrition_expert_node(state: AgentState):
     last_message = messages[-1].content
     context = retrieve_knowledge(last_message, "Nutrition")
     system_msg = f"당신은 영양 전문가입니다. 정보: {context}"
-    response = llm.invoke([SystemMessage(content=system_msg)] + messages)
+    response = llm_supervisor.invoke([SystemMessage(content=system_msg)] + messages)
     return {"messages": [response]}
 
 def sleep_expert_node(state: AgentState):
@@ -53,7 +57,7 @@ def sleep_expert_node(state: AgentState):
     last_message = messages[-1].content
     context = retrieve_knowledge(last_message, "Sleep")
     system_msg = f"당신은 수면 전문가입니다. 정보: {context}"
-    response = llm.invoke([SystemMessage(content=system_msg)] + messages)
+    response = llm_expert.invoke([SystemMessage(content=system_msg)] + messages)
     return {"messages": [response]}
 
 def supervisor_node(state: AgentState):
@@ -67,7 +71,7 @@ def supervisor_node(state: AgentState):
         ("system", system_prompt),
         MessagesPlaceholder(variable_name="messages"),
     ]).partial(options=str(options))
-    chain = prompt | llm
+    chain = prompt | llm_supervisor
     result = chain.invoke(messages)
     decision = result.content.strip()
     
