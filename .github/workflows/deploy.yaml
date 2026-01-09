@@ -1,8 +1,8 @@
-name: Deploy to Google Cloud Run
+name: Deploy to Cloud Run
 
 on:
   push:
-    branches: [ "main" ]  # main 브랜치에 푸시하면 실행
+    branches: [ "main" ]
 
 env:
   REGION: asia-northeast3
@@ -23,50 +23,35 @@ jobs:
       with:
         credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
 
-    # 2. Docker 인증 설정
+    # 2. Docker 인증 및 gcloud 설정
+    - name: Setup Google Cloud SDK
+      uses: google-github-actions/setup-gcloud@v1
+
     - name: Configure Docker
       run: gcloud auth configure-docker asia-northeast3-docker.pkg.dev
 
-    # 3. 이미지 빌드 및 업로드 (Backend & Frontend 공용 이미지)
+    # 3. 이미지 빌드 및 업로드 (Backend & Frontend 공용)
     - name: Build and Push Docker Image
       run: |
         IMAGE_URI=asia-northeast3-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/${{ env.REPO_NAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
         docker build --platform linux/amd64 -t $IMAGE_URI .
         docker push $IMAGE_URI
 
-    # 4. 백엔드 배포 (Backend)
+    # 4. 백엔드 배포 (Manual Command)
     - name: Deploy Backend
-      uses: google-github-actions/deploy-cloudrun@v1
-      with:
-        service: babysquad-backend
-        image: asia-northeast3-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/${{ env.REPO_NAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-        region: ${{ env.REGION }}
-        flags: '--port=8000 --memory=2Gi --timeout=300 --allow-unauthenticated'
-        env_vars: |
-          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
-          LANGCHAIN_API_KEY=${{ secrets.LANGCHAIN_API_KEY }}
-          GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}
+      run: |
+        gcloud run deploy babysquad-backend \
+          --image asia-northeast3-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/${{ env.REPO_NAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+          --region ${{ env.REGION }} \
+          --port 8000 \
+          --memory 2Gi \
+          --timeout 300 \
+          --allow-unauthenticated \
+          --set-env-vars "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }},LANGCHAIN_API_KEY=${{ secrets.LANGCHAIN_API_KEY }},GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}"
 
-    # 5. 프론트엔드 배포 (Frontend)
+    # 5. 프론트엔드 배포 (Manual Command)
+    # Streamlit 실행 명령어(--command, --args) 적용
     - name: Deploy Frontend
-      uses: google-github-actions/deploy-cloudrun@v1
-      with:
-        service: babysquad-frontend
-        image: asia-northeast3-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/${{ env.REPO_NAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-        region: ${{ env.REGION }}
-        # 프론트엔드 실행 명령어 (streamlit) 지정
-        flags: '--port=8501 --memory=2Gi --allow-unauthenticated'
-        secrets: |
-          BACKEND_URL=${{ secrets.BACKEND_URL }}
-        # 명령어 덮어쓰기 (args는 콤마로 구분하지 않고 리스트 형태나 공백으로 처리됨, deploy-cloudrun action 특성상 아래처럼 설정)
-        metadata: |-
-          annotations:
-            run.googleapis.com/container-dependencies: "{}"
-      # 주의: deploy-cloudrun 액션에서는 command/args를 직접 넣기보다 Dockerfile CMD를 쓰거나,
-      # gcloud 명령어를 직접 쓰는 게 더 확실할 때가 많습니다.
-      # 하지만 위에서 성공했던 gcloud 명령어를 그대로 쓰는 "Step"으로 교체해드리겠습니다. (가장 확실한 방법)
-
-    - name: Deploy Frontend (Manual Command)
       run: |
         gcloud run deploy babysquad-frontend \
           --image asia-northeast3-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/${{ env.REPO_NAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
@@ -76,4 +61,4 @@ jobs:
           --allow-unauthenticated \
           --command streamlit \
           --args run,app.py,--server.port=8501,--server.address=0.0.0.0 \
-          --set-env-vars BACKEND_URL="${{ secrets.BACKEND_URL }}"
+          --set-env-vars "BACKEND_URL=${{ secrets.BACKEND_URL }}"
