@@ -14,6 +14,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # 소스코드 & DB 데이터 복사 (COPY . . 이 핵심!)
 COPY . .
 
+# 포트 노출 (FastAPI: 8000, Streamlit: 8501)
+EXPOSE 8000
 EXPOSE 8501
 
-CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+CMD ["python", "server.py"]

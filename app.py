@@ -1,6 +1,9 @@
+import os
 import streamlit as st
 import uuid
 import requests
+
+BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
 
 # 1. 페이지 설정
 st.set_page_config(page_title="BabySquad AI", page_icon="👶")
@@ -53,7 +56,7 @@ if st.session_state.pending_approval:
                 try:
                     # 1. /approve API 호출
                     res = requests.post(
-                        "http://localhost:8000/approve",
+                        f"{BACKEND_URL}/approve",
                         json={"thread_id": st.session_state.thread_id}
                     )
                     final_res = res.json()["response"]
@@ -87,7 +90,7 @@ else:
             
             try:
                 response = requests.post(
-                    "http://localhost:8000/chat",
+                    f"{BACKEND_URL}/chat",
                     json={"thread_id": st.session_state.thread_id, "message": prompt}
                 )
                 data = response.json()

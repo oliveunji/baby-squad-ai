@@ -10,3 +10,10 @@ pypdf
 chromadb
 tiktoken
 langchain-community
+google-cloud-logging
+langchain
+langchain-community
+fastapi
+uvicorn
+python-dotenv
+requests
