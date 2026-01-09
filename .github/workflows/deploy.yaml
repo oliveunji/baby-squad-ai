@@ -6,7 +6,7 @@ on:
 
 env:
   REGION: asia-northeast3
-  REPO_NAME: baby-squad-ai
+  REPO_NAME: baby-repo
   IMAGE_NAME: babysquad
 
 jobs:
