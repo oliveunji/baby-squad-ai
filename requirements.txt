@@ -1,19 +1,23 @@
-streamlit
-google-genai
-python-dotenv
-langchain-chroma
-langchain-google-genai
+# [1] Google & FastAPI 필수 호환 (유지)
+google-adk==1.0.0
+sse-starlette==2.1.0
+fastapi>=0.115.0,<0.124.0
+
+# [2] LangChain & Pinecone (Supabase 삭제!)
+langchain>=0.2.0
+langchain-community>=0.2.0
 langchain-openai
+langchain-google-genai
+langchain-google-community
 langgraph
-litellm
-pypdf
-chromadb
-tiktoken
-langchain-community
-google-cloud-logging
-langchain
-langchain-community
-fastapi
+langchain-pinecone
+pinecone-client
+
+# [3] 유틸리티
 uvicorn
 python-dotenv
 requests
+google-cloud-logging
+google-generativeai
+streamlit
+pypdf

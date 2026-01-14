@@ -1,7 +1,7 @@
 # baseline.py (단일 RAG 에이전트)
 from langchain_openai import ChatOpenAI
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
-from langchain_chroma import Chroma
+from langchain_pinecone import PineconeVectorStore
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from dotenv import load_dotenv
@@ -13,14 +13,11 @@ load_dotenv()
 llm = ChatOpenAI(model="gpt-4o", temperature=0)
 embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
 
-if os.path.exists("./chroma_db"):
-    vector_store = Chroma(
-        persist_directory="./chroma_db",
-        embedding_function=embeddings,
-        collection_name="baby_knowledge"
-    )
-else:
-    raise ValueError("DB 없음")
+# 벡터 스토어 연결
+vector_store = PineconeVectorStore(
+    index_name="baby-index",
+    embedding=embeddings  # 기존 embedding 객체 그대로 사용
+)
 
 # 2. 단순 검색 및 답변 체인
 def simple_rag_answer(question: str):

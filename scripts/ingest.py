@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 from langchain_community.document_loaders import TextLoader, PyPDFLoader, DirectoryLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
-from langchain_chroma import Chroma
+from langchain_pinecone import PineconeVectorStore
 
 # 1. 환경 변수 로드 (API Key 필요)
 load_dotenv()
@@ -53,22 +53,14 @@ def ingest_data():
 
     # ---------------------------------------------------------
     # [3] 임베딩 및 DB 저장 (Embed & Store)
-    # 텍스트를 AI가 이해하는 숫자(Vector)로 바꿔서 ChromaDB에 저장합니다.
+    # 텍스트를 AI가 이해하는 숫자(Vector)로 바꿔서 DB에 저장합니다.
     # ---------------------------------------------------------
     embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
-    
-    # DB 저장 경로
-    persist_directory = "../chroma_db"
-    
     print("💾 데이터베이스에 저장 중... (시간이 조금 걸릴 수 있습니다)")
-    vector_store = Chroma.from_documents(
-        documents=chunks,
-        embedding=embeddings,
-        persist_directory=persist_directory,
-        collection_name="baby_knowledge" # 데이터베이스 이름
-    )
-    
-    print(f"✅ 학습 완료! 데이터가 '{persist_directory}'에 저장되었습니다.")
+    vector_store = PineconeVectorStore(
+    index_name="baby-index",
+    embedding=embeddings  # 기존 embedding 객체 그대로 사용
+)
 
 if __name__ == "__main__":
     ingest_data()

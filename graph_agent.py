@@ -5,9 +5,9 @@ from typing import Annotated, List, Any
 from typing_extensions import TypedDict
 from dotenv import load_dotenv
 
+from langchain_pinecone import PineconeVectorStore
 from langchain_openai import ChatOpenAI
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
-from langchain_chroma import Chroma
 from langchain_core.messages import SystemMessage, convert_to_messages
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langgraph.graph import StateGraph, END
@@ -24,14 +24,10 @@ llm_supervisor = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
 
 # [DB 로드]
-if os.path.exists("./chroma_db"):
-    vector_store = Chroma(
-        persist_directory="./chroma_db",
-        embedding_function=embeddings,
-        collection_name="baby_knowledge"
-    )
-else:
-    vector_store = None
+vector_store = PineconeVectorStore(
+    index_name="baby-index",
+    embedding=embeddings  # 기존 embedding 객체 그대로 사용
+)
 
 def retrieve_knowledge(query: str, category: str) -> str:
     if not vector_store: return "정보 없음"
