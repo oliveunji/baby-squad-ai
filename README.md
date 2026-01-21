@@ -31,20 +31,28 @@ A production-grade multi-agent parenting consultation system achieving **82.8% a
 ```
 User Question
     ↓
-Complexity Router ────► Simple ────► Direct Answer (fast path)
-    ↓
-    Complex
-    ↓
-Orchestrator (selects 1-2 experts dynamically)
-    ↓
-Expert Pool: [🍎 Nutrition] [😴 Sleep] [🎨 Play]
-    ↓
-Synthesizer (combines expert answers)
-    ↓
-Risk Analyzer (LLM-based safety check)
-    ↓
-    ├─ SAFE ────► Auto-approve
-    └─ RISK ────► Human Review
+[Complexity Router]
+    ├─ Simple → [DirectAnswer] ──┐
+    │                            │
+    └─ Complex → [Orchestrator]  │
+           ↓                     │
+    [ExpertExecution]            │
+           ↓                     │
+    [Synthesizer] ───────────────┘
+                                 ↓
+                          [RiskAnalyzer]
+                                 ↓
+                    ┌────────────┴─────────────┐
+                    ▼                          ▼
+            [Human_Review]                   [END]
+            (interrupt 🛑)                 (안전한 답변)
+                    ↓
+            Backend analyze_risk()
+                    ↓
+            ┌───────┴────────┐
+            ▼                ▼
+           RISK             SAFE
+     (review_needed)       (자동 승인)
 ```
 
 ### Key Design Patterns

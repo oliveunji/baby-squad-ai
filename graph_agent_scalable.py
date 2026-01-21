@@ -608,6 +608,45 @@ def synthesizer_node(state: AgentState):
     }
 
 # ================================================================================
+# 노드 6: Risk Analyzer
+# ================================================================================
+def risk_analyzer_node(state: AgentState):
+    """답변의 의료 위험도 분석"""
+    final_answer = state.get("final_answer", "")
+    
+    medical_keywords = [
+        "타이레놀", "해열제", "항생제", "약", "ml", "mg",
+        "복용", "투여", "먹이", "처방", "진단", "치료",
+        "응급", "119", "병원", "의사", "주사", "링거"
+    ]
+    
+    has_medical_keyword = any(kw in final_answer for kw in medical_keywords)
+    
+    print(f"\n{'='*60}")
+    print(f"🛡️ [Risk Analyzer] 분석 중...")
+    print(f"   답변: {final_answer[:100]}...")
+    print(f"   의료 키워드: {has_medical_keyword}")
+    
+    if has_medical_keyword:
+        print(f"   ⚠️ Human Review 필요")
+    else:
+        print(f"   ✅ 안전")
+    print(f"{'='*60}\n")
+    
+    return {
+        "metadata": {
+            **state.get("metadata", {}),
+            "requires_human_review": has_medical_keyword,
+            "risk_detected": has_medical_keyword
+        }
+    }
+
+def human_review_node(state: AgentState):
+    """Human review 대기"""
+    print(f"\n⏸️ [Human Review] 사람 검토 대기 중...")
+    return state
+
+# ================================================================================
 # 라우팅 함수
 # ================================================================================
 def route_by_complexity(state: AgentState) -> str:
@@ -626,6 +665,8 @@ workflow.add_node("DirectAnswer", direct_answer_node)
 workflow.add_node("Orchestrator", orchestrator_node)
 workflow.add_node("ExpertExecution", expert_execution_node)
 workflow.add_node("Synthesizer", synthesizer_node)
+workflow.add_node("RiskAnalyzer", risk_analyzer_node)
+workflow.add_node("Human_Review", human_review_node) 
 
 # 시작: 복잡도 판단
 workflow.set_entry_point("ComplexityRouter")
@@ -640,17 +681,39 @@ workflow.add_conditional_edges(
     }
 )
 
-# 직접 답변 → 종료
-workflow.add_edge("DirectAnswer", END)
+# Direct Answer → Risk Check (수정!)
+workflow.add_edge("DirectAnswer", "RiskAnalyzer")
 
 # 복합 질문 플로우
 workflow.add_edge("Orchestrator", "ExpertExecution")
 workflow.add_edge("ExpertExecution", "Synthesizer")
-workflow.add_edge("Synthesizer", END)
+workflow.add_edge("Synthesizer", "RiskAnalyzer")
+
+# Risk Analyzer 분기 함수
+def route_after_risk_check(state: AgentState) -> str:
+    metadata = state.get("metadata", {})
+    requires_review = metadata.get("requires_human_review", False)
+    return "review" if requires_review else "approved"
+
+# Risk Analyzer에서 분기
+workflow.add_conditional_edges(
+    "RiskAnalyzer",
+    route_after_risk_check,
+    {
+        "review": "Human_Review",
+        "approved": END
+    }
+)
+
+# Human Review 후 종료
+workflow.add_edge("Human_Review", END)
 
 # 컴파일
 memory = MemorySaver()
-app = workflow.compile(checkpointer=memory)
+app = workflow.compile(
+    checkpointer=memory,
+    interrupt_before=["Human_Review"]  # 이 노드 전에 멈춤!
+)
 
 def get_graph_app():
     return app
