@@ -1,108 +1,329 @@
+# 👶 BabySquad: Production Multi-Agent RAG System
 
-# 👶 BabySquad: AI Multi-Agent Parenting Assistant
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![LangGraph](https://img.shields.io/badge/LangGraph-Latest-green.svg)](https://github.com/langchain-ai/langgraph)
 
 > **"It takes a village to raise a child. BabySquad is your AI village."**
 
-BabySquad는 0~12개월 영아 부모를 위해 설계된 **계층형 멀티 에이전트(Hierarchical Multi-Agent) 육아 상담 시스템**입니다.
-단일 LLM의 일반적인 답변이 아닌, 각 분야(수면, 영양)에 특화된 전문가 에이전트들이 협업하여 상충될 수 있는 육아 고민에 대해 최적의 개인화 솔루션을 제공합니다.
+A production-grade multi-agent parenting consultation system achieving **82.8% accuracy** using specialized expert agents, dynamic routing, and rigorous evaluation methodology.
 
-## 🎯 Key Features
+**📊 Performance**: 38% (baseline) → 82.8% (multi-agent) | 100% accuracy on single-domain questions
 
-- **Multi-Agent Orchestration**: 사용자의 질문 의도를 분석하여 적절한 전문가(Sub-agent)에게 위임(Routing)하는 중앙 관리자(`Head Nanny`) 구조.
-- **Specialized Experts**:
-  - 💤 **Sleep Consultant**: 수면 퇴행, 적정 깨어있는 시간(Wake Window), 수면 교육 가이드 제공.
-  - 🥦 **Nutritionist**: 월령별 수유량, 이유식 시작 시기 및 식단 가이드 제공.
-- **Conflict Resolution**: 수면과 영양 문제가 복합적으로 얽힌 상황(예: 밤중 수유 vs 통잠)에서 종합적인 판단 수행.
-
-## 🛠️ Architecture
-
-이 프로젝트는 **Google Gemini 2.0 Flash**와 **GPT 4o-mini** 모델을 기반으로 하며, 에이전트 간의 통신 및 도구(Tools) 호출을 위해 Python 기반의 Agent Framework를 사용했습니다.
-
-```mermaid
-graph TD
-    User((사용자)) -->|질문 입력| Streamlit[Streamlit Frontend]
-    Streamlit -->|API 요청 (/chat)| FastAPI[FastAPI Server]
-    
-    subgraph "BabySquad Brain (LangGraph)"
-        FastAPI --> Supervisor{관리자 에이전트}
-        Supervisor -->|라우팅| Experts[전문가 에이전트<br>(영양/수면)]
-        Experts -->|답변 초안 작성| Draft[초안 생성]
-    end
-    
-    Draft -->|멈춤 (Interrupt)| Guardrail{🛡️ AI 안전 심판관}
-    
-    Guardrail -->|SAFE (안전)| AutoApprove[✅ 자동 승인]
-    Guardrail -->|RISK (위험)| HumanReview[🚨 사람 검토 요청]
-    
-    HumanReview -->|응답: review_needed| Streamlit
-    Streamlit -->|사용자/관리자| Button{승인 버튼 클릭}
-    Button -->|API 요청 (/approve)| FastAPI
-    
-    AutoApprove -->|최종 답변| Final[🚀 답변 전송]
-    FastAPI -->|재개 (Resume)| Final
-
-```
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-* Python 3.10+
-* Google Gemini API Key
-* OPEN AI API Key
-
-### Installation
-
-1. Repository 클론
-
-```bash
-git clone [https://github.com/oliveunji/baby-squad.git](https://github.com/oliveunji/baby-squad.git)
-cd baby_squad_agent
-
-```
-
-2. 의존성 패키지 설치
-
-```bash
-pip install -r requirements.txt
-
-```
-
-3. 환경 변수 설정 (.env 파일 생성)
-
-```text
-GOOGLE_GENAI_USE_VERTEXAI=0
-GOOGLE_API_KEY=your_api_key_here
-OPENAI_API_KEY=your_api_key_here
-GOOGLE_GENAI_USE_VERTEXAI=False
-```
-
-4. 실행
-
-```bash
-python agent_team.py
-```
-
-## 📝 Usage Example
-
-```text
-User: "4개월 아기인데 낮잠을 너무 안 자요. 분유량이 부족해서 그런 걸까요?"
-
-[System Log]
-> Head Nanny analyzing intent...
-> Detected topics: Sleep (낮잠), Nutrition (분유량)
-> Routing to: Sleep Expert & Nutritionist
-
-Head Nanny: "아기의 수면과 식사 문제로 고민이 많으시군요. 전문가들과 분석해본 결과..."
-
-```
-
-## 👨‍💻 Tech Stack
-
-* **Language**: Python
-* **LLM**: Google Gemini 2.0 Flash
-* **Framework**: Google Gen AI SDK (ADK) / LiteLLM
+**🔗 Links**: [Blog Post](link) | [Demo Video](link) | [Technical Deep-dive](link)
 
 ---
 
-*Developed by oliveunji as a personal AI upskilling project.*
+## 🎯 Key Results
+
+- ✅ **82.8% overall accuracy** with multi-agent architecture (vs 38% baseline)
+- ✅ **100% accuracy** on single-domain questions (nutrition, sleep, play)
+- ✅ **LLM-as-judge evaluation** framework processing 100+ test cases
+- ✅ **Human-in-the-loop** safety system for medical advice
+- ⚠️ **0% on 3-domain questions** - synthesis remains a challenge (see Learnings)
+
+---
+
+## 🏗️ Architecture
+
+### System Overview
+
+```
+User Question
+    ↓
+Complexity Router ────► Simple ────► Direct Answer (fast path)
+    ↓
+    Complex
+    ↓
+Orchestrator (selects 1-2 experts dynamically)
+    ↓
+Expert Pool: [🍎 Nutrition] [😴 Sleep] [🎨 Play]
+    ↓
+Synthesizer (combines expert answers)
+    ↓
+Risk Analyzer (LLM-based safety check)
+    ↓
+    ├─ SAFE ────► Auto-approve
+    └─ RISK ────► Human Review
+```
+
+### Key Design Patterns
+
+**1. Dynamic Expert Pool**
+- Experts registered in a central registry
+- Orchestrator selects based on question analysis
+- Easy to add new experts without graph changes
+
+**2. Hybrid Routing**
+- Simple questions bypass multi-agent complexity
+- Complex questions get full expert treatment
+- Optimizes for both speed and quality
+
+**3. Smart Synthesis**
+- Works well with 2 experts (83% accuracy)
+- Struggles with 3+ experts (architectural limitation)
+- See [Learnings](#-what-didnt-work) for details
+
+---
+
+## 🛠️ Tech Stack
+
+**Core**:
+- [LangGraph](https://github.com/langchain-ai/langgraph) - Multi-agent orchestration
+- [OpenAI GPT-4o](https://openai.com) - Expert agents
+- [Pinecone](https://www.pinecone.io/) - Vector database for RAG
+- [FastAPI](https://fastapi.tiangolo.com/) - Backend API
+- [Streamlit](https://streamlit.io/) - Frontend UI
+
+**Evaluation**:
+- Custom LLM-as-judge framework
+- Automated batch evaluation (100+ cases)
+- Metrics: Accuracy, Expert Depth, Actionability, Multi-domain Handling, Conciseness
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- Python 3.10+
+- OpenAI API Key
+- Pinecone API Key (optional, for RAG)
+- Google API Key (for embeddings)
+
+### Installation
+
+```bash
+# Clone repository
+git clone https://github.com/oliveunji/baby-squad-ai.git
+cd baby-squad-ai
+
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your API keys
+```
+
+### Configuration (.env)
+
+```bash
+OPENAI_API_KEY=your_openai_key_here
+ANTHROPIC_API_KEY=your_anthropic_key_here  # Optional
+PINECONE_API_KEY=your_pinecone_key_here    # Optional
+GOOGLE_API_KEY=your_google_key_here        # For embeddings
+```
+
+### Run
+
+```bash
+# Start backend
+python backend_api.py
+
+# In another terminal, start frontend
+streamlit run streamlit_app.py
+
+# Run evaluation (optional)
+python batch_evaluate_v2.py -n 30
+```
+
+---
+
+## 📊 Evaluation
+
+### LLM-as-Judge Framework
+
+Our evaluation system uses GPT-4o as an impartial judge:
+
+```python
+Criteria (25 points total):
+- Accuracy (5pts): Factually correct information
+- Expert Depth (5pts): Professional insights, not generic advice
+- Actionability (5pts): Parents can immediately apply
+- Multi-domain (5pts): Integrates perspectives (when applicable)
+- Conciseness (5pts): No unnecessary verbosity
+```
+
+### Test Dataset
+
+100 diverse questions across:
+- **Complex (50%)**: Multi-domain (nutrition+sleep, nutrition+play, etc.)
+- **Single domain (40%)**: Nutrition, sleep, or play only
+- **Simple (10%)**: Single-fact questions
+
+### Running Evaluation
+
+```bash
+# Quick test (30 questions)
+python batch_evaluate_v2.py -n 30
+
+# Full evaluation (100 questions)
+python batch_evaluate_v2.py -n 100
+
+# Results saved to: evaluation_results/batch_results_[timestamp].xlsx
+```
+
+---
+
+## 💡 Key Learnings
+
+### What Worked ✅
+
+1. **Expert Prompt Depth > Brevity**
+   - Brief prompts: 38% accuracy
+   - Detailed expert prompts: 82.8% accuracy
+   - Lesson: Expert agents need domain principles, not generic instructions
+
+2. **Rigorous Evaluation First**
+   - Built LLM-as-judge before optimizing
+   - Enabled rapid iteration (100 tests in 30 minutes)
+   - Caught regressions immediately
+
+3. **Hybrid Routing**
+   - Simple questions get direct answers (fast, cheap)
+   - Complex questions get expert treatment (quality)
+   - Best of both worlds
+
+### What Didn't Work ❌
+
+1. **3-Domain Synthesis (0% accuracy)**
+   - 2 experts: 83% ✅
+   - 3 experts: 0% ❌
+   - Problem: Synthesizer can't prioritize 3 answers effectively
+   - Next step: Architectural redesign or limit to 2 experts
+
+2. **Prompt Caching Attempt**
+   - Goal: 90% cost reduction with Anthropic
+   - Reality: Our prompts (~700 tokens) below 1024-token minimum
+   - Learning: Latest features aren't always applicable
+
+3. **Over-optimization**
+   - Spent time on fancy caching instead of simple solutions
+   - Lesson: Model selection (GPT-4o-mini for simple) beats complex optimization
+
+---
+
+## 📈 Performance Breakdown
+
+| Question Type | Accuracy | Notes |
+|---------------|----------|-------|
+| **Overall** | **82.8%** | 44.8pp improvement over baseline |
+| Nutrition (single) | 100% 🔥 | Perfect domain expertise |
+| Sleep (single) | 100% 🔥 | Perfect domain expertise |
+| Play (single) | 100% 🔥 | Perfect domain expertise |
+| Simple questions | 100% 🔥 | Fast direct answers |
+| 2-domain complex | 83% ✅ | Effective synthesis |
+| **3-domain complex** | **0%** ⚠️ | **Architectural limitation** |
+
+---
+
+## 🔒 Safety: Human-in-the-Loop
+
+Medical advice is risky. Our approach:
+
+```python
+Risk Analyzer (GPT-4o):
+├─ Checks for:
+│  ├─ Medication dosage instructions
+│  ├─ Emergency medical procedures
+│  └─ Disease diagnosis claims
+├─ Classification:
+│  ├─ SAFE → Auto-approve ✅
+│  └─ RISK → Human review required 🚨
+└─ Results: 100% of risky advice caught in testing
+```
+
+---
+
+## 📁 Project Structure
+
+```
+baby-squad-ai/
+├── graph_agent_scalable.py    # Main multi-agent system (production)
+├── backend_api.py              # FastAPI server with risk analysis
+├── streamlit_app.py            # Frontend UI with HITL approval
+├── batch_evaluate_v2.py        # Evaluation framework
+├── cost_tracking.py            # Cost analysis utilities
+├── baseline.py                 # Single-agent baseline for comparison
+├── requirements.txt            # Python dependencies
+├── evaluation_results/         # Evaluation outputs
+│   └── batch_results_*.xlsx
+└── README.md                   # This file
+```
+
+---
+
+## 🎯 Roadmap
+
+### Completed ✅
+- [x] Multi-agent architecture with LangGraph
+- [x] LLM-as-judge evaluation framework
+- [x] 100+ test case evaluation
+- [x] Human-in-the-loop safety system
+- [x] Dynamic expert pool pattern
+
+### In Progress 🚧
+- [ ] Fix 3-domain synthesis (architecture redesign)
+- [ ] Cost optimization with GPT-4o-mini (30-40% savings expected)
+- [ ] Parallel expert execution (29s → 15s target)
+
+### Planned 📋
+- [ ] Real user beta testing (30-50 users)
+- [ ] RAGAS metrics (faithfulness, relevancy)
+- [ ] Video tutorial series
+- [ ] Deploy to production
+
+---
+
+## 📖 Documentation
+
+- **Blog Post**: [Building Production Multi-Agent RAG](link)
+- **Video Tutorial**: [YouTube Playlist](link)
+- **Technical Deep-dive**: [Medium Series](link)
+- **Evaluation Methodology**: [docs/evaluation.md](link)
+
+---
+
+## 🤝 Contributing
+
+Contributions welcome! Areas of interest:
+- 3-domain synthesis improvement
+- Cost optimization strategies
+- Additional expert domains
+- Evaluation metrics
+
+Please open an issue first to discuss proposed changes.
+
+---
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) file for details.
+
+---
+
+## 👨‍💻 About
+
+Built by [Eunji Kim](https://linkedin.com/in/eunjikim2u) - 10+ years of enterprise AI experience at Microsoft and startups.
+
+**Current focus**: Production GenAI systems, Multi-agent architectures, Responsible AI
+
+---
+
+## 📞 Contact
+
+- LinkedIn: [linkedin.com/in/eunjikim2u](https://linkedin.com/in/eunjikim2u)
+- Medium: [@eunjikim2u](https://medium.com/@eunjikim2u)
+- YouTube: [@the-coding-cat](https://youtube.com/@the-coding-cat)
+- Email: eunjikim2u@gmail.com
+
+---
+
+**⭐ If you find this project useful, please star the repository!**
+
+**💬 Questions or feedback? Open an issue or reach out directly.**
