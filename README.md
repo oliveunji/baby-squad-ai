@@ -112,6 +112,17 @@ python batch_evaluate_v2.py -n 100
 
 Results are saved as .xlsx for inspection and iteration.
 
+## 🔒 Safety: Human-in-the-Loop (HITL)
+
+Medical or risky advice is handled outside the agent graph.
+
+### 2-stage risk detection:
+
+1. Keyword-based fast filter (cheap)
+2. LLM-based risk validation (precise)
+
+Only truly risky answers trigger human review.
+
 ## 🛠️ Tech Stack
 - LangGraph — agent orchestration
 - GPT-4o / GPT-4o-mini — experts & routing
