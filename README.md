@@ -13,7 +13,7 @@ BabySquad is a hands-on experiment exploring a simple question:
 > **Are multi-agent systems actually better than a single prompt?**
 
 ![demo](./assets/demo.gif)
-[🔗 Live Demo](https://babysquad-frontend-206826415696.asia-northeast3.run.app/) | [📄 Blog Series](https://medium.com/@eunjikim2u/are-multi-agent-systems-really-better-30970254b286)
+[🌐 BabySquad Website](https://babysquad-frontend-206826415696.asia-northeast3.run.app/)
 
 This repository accompanies a 3-part Medium series where I:
 - compared Single Prompt vs Multi-Agent approaches,
