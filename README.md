@@ -10,14 +10,17 @@ A Practical Multi-Agent System for Evaluating, Improving, and Shipping LLM Agent
 
 BabySquad is a hands-on experiment exploring a simple question:
 
-> Are multi-agent systems actually better than a single prompt?
+> **Are multi-agent systems actually better than a single prompt?**
+
+![demo](./assets/demo.gif)
+[🔗 Live Demo](https://babysquad-frontend-206826415696.asia-northeast3.run.app/) | [📄 Blog Series](https://medium.com/@eunjikim2u/are-multi-agent-systems-really-better-30970254b286)
 
 This repository accompanies a 3-part Medium series where I:
 - compared Single Prompt vs Multi-Agent approaches,
 - evaluated them using LLM-as-Judge,
 - and incrementally redesigned the system to make it production-ready.
 
-📊 Current Results
+📊 Current Results (LLM-as-Judge, internal benchmark)
 - Single Prompt baseline: ~38%
 - Multi-Agent (v2, evaluated): 82.8%
 - Single-domain questions: 100% accuracy
@@ -65,7 +68,7 @@ User Question
            RISK             SAFE
      (review_needed)       (자동 승인)
 ```
-This architecture reflects the lessons from the blog series:
+This architecture reflects the key lessons learned throughout the blog series:
 - Not every question needs agents
 - Routing matters
 - Synthesis is harder than execution
@@ -91,7 +94,7 @@ New experts can be added without changing the graph.
 - 2-domain synthesis works well (~83%)
 - 3-domain synthesis fails consistently (0%)
 
-This is not a prompt issue — it’s an architectural one.
+**This is not a prompt issue — it’s an architectural one.**
 
 ## 📊 Evaluation: LLM-as-Judge
 Evaluation comes before optimization.
@@ -145,8 +148,8 @@ Only truly risky answers trigger human review.
 
 These are **documented, intentional trade-offs**, not oversights.
 
-### 👩‍💻 Author
+## 👩‍💻 Author
 Built by Eunji Kim
-- Medium: @eunjikim2u
-- LinkedIn: linkedin.com/in/eunjikim2u
-- YouTube: @the-coding-cat
+- Medium: [@eunjikim2u](https://medium.com/@eunjikim2u)
+- LinkedIn: [linkedin.com/in/eunjikim2u](https://www.linkedin.com/in/eunjikim2u/)
+- YouTube: [@the-coding-cat](https://www.youtube.com/@the-coding-cat)
