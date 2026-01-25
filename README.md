@@ -107,7 +107,7 @@ This made failure modes obvious — and fixable.
 
 ```bash
 # Run evaluation
-python batch_evaluate_v2.py -n 100
+python batch_evaluate.py -n 10
 ```
 
 Results are saved as .xlsx for inspection and iteration.
