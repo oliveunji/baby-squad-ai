@@ -41,33 +41,7 @@ This project is NOT:
 - ❌ Claiming multi-agent is always better
 
 ## System Overview
-
-```
-User Question
-    ↓
-[Complexity Router]
-    ├─ Simple → [DirectAnswer] ──┐
-    │                            │
-    └─ Complex → [Orchestrator]  │
-           ↓                     │
-    [ExpertExecution]            │
-           ↓                     │
-    [Synthesizer] ───────────────┘
-                                 ↓
-                          [RiskAnalyzer]
-                                 ↓
-                    ┌────────────┴─────────────┐
-                    ▼                          ▼
-            [Human_Review]                   [END]
-            (interrupt 🛑)                 (안전한 답변)
-                    ↓
-            Backend analyze_risk()
-                    ↓
-            ┌───────┴────────┐
-            ▼                ▼
-           RISK             SAFE
-     (review_needed)       (자동 승인)
-```
+![architecture](./assets/architecture.png)
 This architecture reflects the key lessons learned throughout the blog series:
 - Not every question needs agents
 - Routing matters
