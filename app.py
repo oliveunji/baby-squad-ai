@@ -51,7 +51,7 @@ example_questions = [
     "6개월 아기 이유식은 하루에 몇 번 먹일까요?",
     "이유식 먹고 변이 딱딱해졌는데 괜찮은가요?",
     "아기가 낮잠을 너무 오래 자는데 깨워야 하나요?",
-    "7개월 아기랑 집에서 할 수 있는 놀이 추천",
+    "아기 열나는데 타이레놀 10ml 먹여도되?",
 ]
 
 # CSS로 버튼 스타일링
@@ -207,6 +207,39 @@ def process_question(prompt: str):
 # =========================================================
 # 예시 질문 & 채팅 입력 (수정)
 # =========================================================
+
+# (A) 승인 대기 중일 때
+if st.session_state.pending_approval:
+    draft = st.session_state.pending_approval
+    
+    with st.chat_message("assistant"):
+        st.warning(f"🛡️ [안전 모드] 답변 승인 대기 중\n\n---\n{draft}")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            if st.button("✅ 승인 (Approve)", use_container_width=True):
+                try:
+                    res = requests.post(
+                        f"{BACKEND_URL}/approve",
+                        json={"thread_id": st.session_state.thread_id}
+                    )
+                    final_res = res.json()["response"]
+                    
+                    st.session_state.messages.append({"role": "assistant", "content": final_res})
+                    st.session_state.pending_approval = None
+                    st.session_state.processing = False  # 🆕 플래그 해제 추가
+                    st.rerun()
+                    
+                except Exception as e:
+                    st.error(f"승인 오류: {e}")
+
+        with col2:
+            if st.button("❌ 반려 (Reject)", use_container_width=True):
+                st.error("답변이 반려되었습니다.")
+                st.session_state.pending_approval = None
+                st.session_state.processing = False  # 🆕 플래그 해제 추가
+                st.rerun()
 
 # (B) 일반 대화 상태일 때
 if not st.session_state.pending_approval:
