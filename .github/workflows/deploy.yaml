@@ -37,7 +37,7 @@ jobs:
         docker build --platform linux/amd64 -t $IMAGE_URI .
         docker push $IMAGE_URI
 
-    # 4. 백엔드 배포 (Manual Command)
+    # 4. 백엔드 배포 (🆕 LangSmith 환경변수 추가!)
     - name: Deploy Backend
       run: |
         gcloud run deploy babysquad-backend \
@@ -47,10 +47,9 @@ jobs:
           --memory 2Gi \
           --timeout 300 \
           --allow-unauthenticated \
-          --set-env-vars "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }},LANGCHAIN_API_KEY=${{ secrets.LANGCHAIN_API_KEY }},GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }},PINECONE_API_KEY=${{ secrets.PINECONE_API_KEY }}"
+          --set-env-vars "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }},LANGCHAIN_API_KEY=${{ secrets.LANGCHAIN_API_KEY }},LANGCHAIN_TRACING_V2=true,LANGCHAIN_PROJECT=baby-squad-agent,GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }},PINECONE_API_KEY=${{ secrets.PINECONE_API_KEY }}"
 
-    # 5. 프론트엔드 배포 (Manual Command)
-    # Streamlit 실행 명령어(--command, --args) 적용
+    # 5. 프론트엔드 배포
     - name: Deploy Frontend
       run: |
         gcloud run deploy babysquad-frontend \
